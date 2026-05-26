@@ -1,0 +1,5 @@
+D:/WorkSpace/unity/Screw Unlock/.utmp/RelWithDebInfo/4u5z4y1i/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/WorkSpace/unity/Screw Unlock/.utmp/RelWithDebInfo/4u5z4y1i/arm64-v8a/CMakeFiles/rebuild_cache.dir
+D:/WorkSpace/unity/Screw Unlock/.utmp/RelWithDebInfo/4u5z4y1i/arm64-v8a/GameActivity/CMakeFiles/game.dir
+D:/WorkSpace/unity/Screw Unlock/.utmp/RelWithDebInfo/4u5z4y1i/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+D:/WorkSpace/unity/Screw Unlock/.utmp/RelWithDebInfo/4u5z4y1i/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
