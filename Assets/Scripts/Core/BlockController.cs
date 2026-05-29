@@ -31,6 +31,8 @@ public class BlockController : MonoBehaviour
 
     Renderer[] renderers;
     Bounds localBounds;
+    Vector3 originalScale;
+
 
     public void Init(BoardController board, MoveDirection dir,
                      float unlockDist, ScrewController sc, BlockColor color, float cs = 1f)
@@ -50,11 +52,13 @@ public class BlockController : MonoBehaviour
 
         renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
         CacheLocalBounds();
+        originalScale = transform.localScale;
     }
 
     public void OnPickUp()
     {
         transform.DOKill(complete: false);
+        transform.localScale = originalScale;
         transform.DOPunchScale(new Vector3(-0.06f, 0.18f, -0.06f), 0.25f, 5, 0.4f);
 
         // SFX: block được chạm vào
@@ -92,6 +96,7 @@ public class BlockController : MonoBehaviour
 
             // Xoa sach tat ca tween cu dang chay de theo sat tay nguoi dung truc tiep
             transform.DOKill(complete: false);
+            transform.localScale = originalScale;
             transform.position = proposedPos;
 
             // Cap nhat cell hien tai cho logic snap neu tha tay khi chua mo khoa
@@ -114,6 +119,7 @@ public class BlockController : MonoBehaviour
     {
         // Xoa tat ca tween de phan hoi truc tiep
         transform.DOKill(complete: false);
+        transform.localScale = originalScale;
 
         // Tinh toan vi tri tu do analogue theo tat ca cac huong XZ
         Vector3 proposedPos = transform.position + new Vector3(worldDelta.x, 0f, worldDelta.z);
@@ -192,62 +198,86 @@ public class BlockController : MonoBehaviour
             Vector3 axis       = SlideAxisVec();
             Vector3 snapPos    = SnapPos(axis, snapOffset);
 
-            transform.DOKill(complete: false);
-            transform.DOMove(snapPos, 0.12f).SetEase(Ease.OutBack);
+            if (snapOffset >= unlockDistance)
+            {
+                slideAccum = snapOffset;
+                transform.DOKill(complete: false);
+                transform.localScale = originalScale;
+                transform.DOMove(snapPos, 0.12f).SetEase(Ease.OutBack).OnComplete(() =>
+                {
+                    CheckUnlock();
+                });
+            }
+            else
+            {
+                slideAccum = snapOffset;
+                if (screw != null)
+                {
+                    screw.ResetRotation(slideAccum, 0.12f);
+                }
+
+                transform.DOKill(complete: false);
+                transform.localScale = originalScale;
+                transform.DOMove(snapPos, 0.12f).SetEase(Ease.OutBack);
+            }
         }
         else
         {
             // Tu do: snap chinh xac ve tam o hien tai + bounce nhe
             Vector3 cellPos = FreeCellToWorld(freeCellX, freeCellZ);
             transform.DOKill(complete: false);
+            transform.localScale = originalScale;
             transform.DOMove(cellPos, 0.12f).SetEase(Ease.OutBack)
                 .OnComplete(() =>
-                    transform.DOPunchScale(new Vector3(0.05f, -0.05f, 0.05f), 0.18f, 4, 0.3f));
+                {
+                    transform.localScale = originalScale;
+                    transform.DOPunchScale(new Vector3(0.05f, -0.05f, 0.05f), 0.18f, 4, 0.3f);
+                });
         }
     }
 
     void PlayUnlockJuice()
     {
         transform.DOKill(complete: false);
+        transform.localScale = originalScale;
 
         // 1. Punch scale manh – cam giac "pop!"
         transform.DOPunchScale(new Vector3(0.2f, -0.15f, 0.2f), 0.35f, 6, 0.5f);
 
-        // 2. Flash emissive tren tat ca renderer
+        // 2. Flash color/emission tren tat ca renderer dung MaterialPropertyBlock (cuc ky nhe & hoat dong 100% tren gia lap/mobile)
         foreach (var r in renderers)
         {
-            foreach (var mat in r.materials)
+            if (r == null) continue;
+
+            // Lay mau gốc cua block
+            Color origColor = ColorMap.Get(blockColor);
+            if (LevelSpawner.Instance != null)
             {
-                if (mat.HasProperty("_EmissionColor"))
+                int idx = (int)blockColor;
+                if (LevelSpawner.Instance.colorMaterials != null && 
+                    idx < LevelSpawner.Instance.colorMaterials.Length && 
+                    LevelSpawner.Instance.colorMaterials[idx] != null)
                 {
-                    Color baseEmit = Color.white * 2.5f;
-                    mat.EnableKeyword("_EMISSION");
-                    DOTween.To(
-                        () => mat.GetColor("_EmissionColor"),
-                        c => mat.SetColor("_EmissionColor", c),
-                        baseEmit, 0.06f
-                    ).SetEase(Ease.OutQuad).OnComplete(() =>
-                        DOTween.To(
-                            () => mat.GetColor("_EmissionColor"),
-                            c => mat.SetColor("_EmissionColor", c),
-                            Color.black, 0.30f
-                        ).SetEase(Ease.InQuad)
-                    );
-                }
-                else
-                {
-                    var mpb = new MaterialPropertyBlock();
-                    r.GetPropertyBlock(mpb);
-                    Color orig = mpb.GetColor("_BaseColor");
-                    DOTween.To(() => 0f, t =>
-                    {
-                        var mpb2 = new MaterialPropertyBlock();
-                        r.GetPropertyBlock(mpb2);
-                        mpb2.SetColor("_BaseColor", Color.Lerp(orig, Color.white, Mathf.Sin(t * Mathf.PI)));
-                        r.SetPropertyBlock(mpb2);
-                    }, 1f, 0.35f).SetEase(Ease.OutQuad);
+                    var mat = LevelSpawner.Instance.colorMaterials[idx];
+                    origColor = mat.HasProperty("_BaseColor") 
+                        ? mat.GetColor("_BaseColor") 
+                        : (mat.HasProperty("_Color") ? mat.GetColor("_Color") : Color.white);
                 }
             }
+
+            // Animate flash sáng bang MaterialPropertyBlock
+            DOTween.To(() => 0f, t =>
+            {
+                if (r == null) return;
+                var mpb = new MaterialPropertyBlock();
+                r.GetPropertyBlock(mpb);
+
+                // Blend mau de tao hieu ung nhay sang trang ruc
+                Color flashColor = Color.Lerp(origColor, Color.white * 2.0f, Mathf.Sin(t * Mathf.PI));
+                mpb.SetColor("_BaseColor", flashColor);
+                mpb.SetColor("_Color", flashColor);
+                r.SetPropertyBlock(mpb);
+            }, 1f, 0.35f).SetEase(Ease.OutQuad);
         }
 
         // 3. Nhay len nhe roi ve (bounce Y)
@@ -356,6 +386,7 @@ public class BlockController : MonoBehaviour
 
         // Kill any ongoing tweens
         transform.DOKill(complete: false);
+        transform.localScale = originalScale;
 
         // Dynamic 2D Sand Pieces effect
         if (LevelSpawner.Instance != null && LevelSpawner.Instance.sandPieceSprites != null && LevelSpawner.Instance.sandPieceSprites.Length > 0)

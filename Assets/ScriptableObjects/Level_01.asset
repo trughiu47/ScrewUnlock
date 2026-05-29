@@ -15,47 +15,72 @@ MonoBehaviour:
   levelIndex: 1
   timeLimit: 120
   boards:
-  - worldPosition: {x: -1, y: 1.5}
-    cellRows: 1
-    cellCols: 2
+  - worldPosition: {x: -0, y: 0}
+    cellRows: 5
+    cellCols: 5
     cellSize: 1
     blocks:
-    - color: 0
-      cellRow: 0
-      cellCol: 0
-      slideDirection: 0
-      screw:
-        unlockDistance: 1
-  - worldPosition: {x: 1.5, y: 1}
-    cellRows: 2
-    cellCols: 1
-    cellSize: 1
-    blocks:
-    - color: 1
+    - color: 5
       cellRow: 0
       cellCol: 0
       slideDirection: 3
       screw:
         unlockDistance: 1
-  - worldPosition: {x: -1.5, y: -1}
-    cellRows: 2
-    cellCols: 1
-    cellSize: 1
-    blocks:
-    - color: 1
+    - color: 3
       cellRow: 1
-      cellCol: 0
+      cellCol: 1
+      slideDirection: 0
+      screw:
+        unlockDistance: 2
+    - color: 5
+      cellRow: 0
+      cellCol: 3
+      slideDirection: 0
+      screw:
+        unlockDistance: 1
+    - color: 3
+      cellRow: 1
+      cellCol: 3
       slideDirection: 2
       screw:
         unlockDistance: 1
-  - worldPosition: {x: 1, y: -1.5}
-    cellRows: 1
-    cellCols: 2
-    cellSize: 1
-    blocks:
-    - color: 0
-      cellRow: 0
+    - color: 1
+      cellRow: 2
+      cellCol: 4
+      slideDirection: 3
+      screw:
+        unlockDistance: 2
+    - color: 5
+      cellRow: 2
+      cellCol: 0
+      slideDirection: 2
+      screw:
+        unlockDistance: 2
+    - color: 3
+      cellRow: 3
+      cellCol: 1
+      slideDirection: 3
+      screw:
+        unlockDistance: 1
+    - color: 3
+      cellRow: 4
       cellCol: 1
       slideDirection: 1
       screw:
         unlockDistance: 1
+    - color: 0
+      cellRow: 3
+      cellCol: 3
+      slideDirection: 1
+      screw:
+        unlockDistance: 2
+    - color: 3
+      cellRow: 4
+      cellCol: 4
+      slideDirection: 2
+      screw:
+        unlockDistance: 1
+    disabledCells:
+    - {x: 0, y: 2}
+    - {x: 4, y: 2}
+    blockerCells: []

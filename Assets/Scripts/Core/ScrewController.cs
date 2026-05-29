@@ -40,6 +40,15 @@ public class ScrewController : MonoBehaviour
         if (!IsLocked) return;
     }
 
+    public void ResetRotation(float targetAccum, float duration)
+    {
+        if (!IsLocked) return;
+        float targetAngle = targetAccum * dragDegreesPerUnit;
+        dragAngleY = targetAngle;
+        transform.DOKill(complete: false);
+        transform.DOLocalRotate(new Vector3(0f, targetAngle, 0f), duration).SetEase(Ease.OutBack);
+    }
+
     void Update()
     {
         if (spinning)

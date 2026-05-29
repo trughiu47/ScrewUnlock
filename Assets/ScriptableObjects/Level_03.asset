@@ -15,71 +15,100 @@ MonoBehaviour:
   levelIndex: 1
   timeLimit: 120
   boards:
-  - worldPosition: {x: -0, y: 0}
-    cellRows: 5
+  - worldPosition: {x: 0, y: -0}
+    cellRows: 7
     cellCols: 5
     cellSize: 1
     blocks:
-    - color: 6
-      cellRow: 2
+    - color: 2
+      cellRow: 0
+      cellCol: 0
+      slideDirection: 3
+      screw:
+        unlockDistance: 1
+    - color: 2
+      cellRow: 1
+      cellCol: 0
+      slideDirection: 3
+      screw:
+        unlockDistance: 1
+    - color: 5
+      cellRow: 0
+      cellCol: 1
+      slideDirection: 1
+      screw:
+        unlockDistance: 1
+    - color: 3
+      cellRow: 3
+      cellCol: 0
+      slideDirection: 3
+      screw:
+        unlockDistance: 2
+    - color: 5
+      cellRow: 4
       cellCol: 0
       slideDirection: 0
       screw:
         unlockDistance: 1
-    - color: 0
+    - color: 6
       cellRow: 1
-      cellCol: 1
-      slideDirection: 3
+      cellCol: 2
+      slideDirection: 1
       screw:
-        unlockDistance: 1
-    - color: 4
-      cellRow: 3
-      cellCol: 1
+        unlockDistance: 2
+    - color: 0
+      cellRow: 2
+      cellCol: 2
       slideDirection: 0
       screw:
-        unlockDistance: 1
-    - color: 6
-      cellRow: 0
-      cellCol: 2
-      slideDirection: 3
-      screw:
-        unlockDistance: 1
-    - color: 6
-      cellRow: 4
-      cellCol: 2
-      slideDirection: 2
-      screw:
-        unlockDistance: 1
-    - color: 6
+        unlockDistance: 2
+    - color: 5
       cellRow: 2
       cellCol: 4
       slideDirection: 1
       screw:
         unlockDistance: 1
+    - color: 6
+      cellRow: 3
+      cellCol: 4
+      slideDirection: 2
+      screw:
+        unlockDistance: 2
     - color: 5
-      cellRow: 1
-      cellCol: 3
+      cellRow: 4
+      cellCol: 2
       slideDirection: 1
       screw:
-        unlockDistance: 1
+        unlockDistance: 2
+    - color: 5
+      cellRow: 5
+      cellCol: 2
+      slideDirection: 0
+      screw:
+        unlockDistance: 2
     - color: 1
-      cellRow: 3
+      cellRow: 6
       cellCol: 3
+      slideDirection: 0
+      screw:
+        unlockDistance: 1
+    - color: 4
+      cellRow: 5
+      cellCol: 4
+      slideDirection: 2
+      screw:
+        unlockDistance: 1
+    - color: 4
+      cellRow: 6
+      cellCol: 4
       slideDirection: 2
       screw:
         unlockDistance: 1
     disabledCells:
+    - {x: 0, y: 2}
     - {x: 0, y: 3}
     - {x: 0, y: 4}
-    - {x: 1, y: 4}
-    - {x: 0, y: 1}
-    - {x: 0, y: 0}
-    - {x: 1, y: 0}
-    - {x: 3, y: 0}
-    - {x: 4, y: 0}
-    - {x: 4, y: 1}
-    - {x: 4, y: 3}
-    - {x: 4, y: 4}
-    - {x: 3, y: 4}
-    blockerCells:
-    - {x: 2, y: 2}
+    - {x: 6, y: 0}
+    - {x: 6, y: 1}
+    - {x: 6, y: 2}
+    blockerCells: []
