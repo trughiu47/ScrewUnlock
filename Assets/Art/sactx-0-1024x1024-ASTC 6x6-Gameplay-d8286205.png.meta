@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -75,7 +75,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -143,7 +143,7 @@ TextureImporter:
         width: 113
         height: 112
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -165,7 +165,7 @@ TextureImporter:
         width: 310
         height: 157
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -174,6 +174,94 @@ TextureImporter:
       bones: []
       spriteID: c76fbdb54ef7e934fa6db3f24e0dd077
       internalID: -136591457
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_3
+      rect:
+        serializedVersion: 2
+        x: 330
+        y: 192
+        width: 168
+        height: 168
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1a5c6ba4c3db1bf49ad47354df10aa66
+      internalID: 917467161
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_4
+      rect:
+        serializedVersion: 2
+        x: 698
+        y: 8
+        width: 168
+        height: 168
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 71805017a14a563429aa1c9fc0c044fe
+      internalID: -400504401
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: clock
+      rect:
+        serializedVersion: 2
+        x: 149
+        y: 522
+        width: 118
+        height: 128
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ec20478df49b9394189d19dde49659c8
+      internalID: -277239846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_5
+      rect:
+        serializedVersion: 2
+        x: 132
+        y: 753
+        width: 57
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e704453d6f42db0449ccec1c254538cf
+      internalID: 1214945702
       vertices: []
       indices: 
       edges: []
@@ -192,9 +280,13 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
+      clock: -277239846
       sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_0: -5657121619070955869
       sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_1: 1977365209
       sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_2: -136591457
+      sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_3: 917467161
+      sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_4: -400504401
+      sactx-0-1024x1024-ASTC 6x6-Gameplay-d8286205_5: 1214945702
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

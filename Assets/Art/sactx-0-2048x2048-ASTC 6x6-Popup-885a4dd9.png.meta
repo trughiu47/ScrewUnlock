@@ -143,7 +143,7 @@ TextureImporter:
         width: 710
         height: 227
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -152,6 +152,72 @@ TextureImporter:
       bones: []
       spriteID: 03b40b3d84c54a244b6682fdd45ea952
       internalID: -1929199311
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_2
+      rect:
+        serializedVersion: 2
+        x: 923
+        y: 0
+        width: 921
+        height: 726
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fe56d87ee711f9145933f43c4b89b80d
+      internalID: 393524104
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_3
+      rect:
+        serializedVersion: 2
+        x: 1584
+        y: 1693
+        width: 373
+        height: 175
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd409a23d913d464fa8e6bb3364cf13a
+      internalID: 512485842
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_4
+      rect:
+        serializedVersion: 2
+        x: 924
+        y: 731
+        width: 747
+        height: 414
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5f030b6e08cbc9d41ac0b6f99801c845
+      internalID: 1085448037
       vertices: []
       indices: 
       edges: []
@@ -172,6 +238,9 @@ TextureImporter:
     nameFileIdTable:
       sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_0: 3888391974824232149
       sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_1: -1929199311
+      sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_2: 393524104
+      sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_3: 512485842
+      sactx-0-2048x2048-ASTC 6x6-Popup-885a4dd9_4: 1085448037
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

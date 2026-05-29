@@ -247,21 +247,33 @@ public class VictorySequenceController : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        // Fade to black rồi load level tiếp
+        if (LevelManager.Instance != null && PlayerDataManager.Instance != null)
+        {
+            int currentIdx = LevelManager.Instance.GetCurrentLevelIndex();
+            int totalLevels = LevelManager.Instance.GetTotalLevels();
+            int nextIdx = (currentIdx + 1 < totalLevels) ? currentIdx + 1 : currentIdx;
+            PlayerDataManager.Instance.SetLevel(nextIdx); // SetLevel đã tự gọi SaveData()
+        }
+        else if (PlayerDataManager.Instance != null)
+        {
+            PlayerDataManager.Instance.SaveData();
+        }
+
         if (dimOverlayGroup != null)
         {
             dimOverlayGroup.DOKill(false);
-            dimOverlayGroup.blocksRaycasts = false; // không block trong lúc fade out
+            dimOverlayGroup.blocksRaycasts = false;
             dimOverlayGroup.interactable = false;
             dimOverlayGroup.DOFade(1f, 0.5f).SetEase(Ease.InQuad).OnComplete(() =>
             {
-                // _isPlaying sẽ được reset bởi ResetState() trong LoadLevel()
-                LevelManager.Instance?.LoadNextLevel();
+                LoadingPanelController.SkipNextLoading = true;
+                UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenuScene");
             });
         }
         else
         {
-            LevelManager.Instance?.LoadNextLevel();
+            LoadingPanelController.SkipNextLoading = true;
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenuScene");
         }
     }
 

@@ -12,6 +12,7 @@ public static class ColorMap
         { BlockColor.Green,  new Color(0.22f, 0.78f, 0.32f) },
         { BlockColor.Yellow, new Color(0.95f, 0.85f, 0.10f) },
         { BlockColor.Purple, new Color(0.60f, 0.22f, 0.82f) },
+        { BlockColor.Sand,   new Color(0.88f, 0.74f, 0.52f) },
     };
 
     public static Color Get(BlockColor c)

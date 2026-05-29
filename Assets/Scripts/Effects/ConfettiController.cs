@@ -4,18 +4,14 @@ using UnityEngine;
 public class ConfettiController : MonoBehaviour
 {
     [Header("── Burst Settings ──")]
-    [Tooltip("Số particle mỗi burst")]
     public int particleCount = 180;
-    [Tooltip("Số burst liên tiếp")]
     public int burstCount = 3;
-    [Tooltip("Khoảng cách (giây) giữa các burst")]
     public float burstInterval = 0.18f;
 
     [Header("── Motion ──")]
     public float minSpeed = 4f;
     public float maxSpeed = 12f;
     public float gravity = -6f;
-    [Tooltip("Tuổi thọ mỗi particle (giây)")]
     public float lifetime = 2.2f;
 
     [Header("── Size ──")]
@@ -78,6 +74,10 @@ public class ConfettiController : MonoBehaviour
         rend.renderMode = ParticleSystemRenderMode.Billboard;
         rend.material = CreateMaterial();
         rend.sortingOrder = 40;
+
+        var main2 = _ps.main;
+        main2.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+        rend.bounds = new Bounds(Vector3.zero, Vector3.one * 9999f);
 
         _ps.Play();
     }

@@ -38,6 +38,7 @@ public class LevelEditorWindow : EditorWindow
         new Color(0.22f, 0.78f, 0.32f), // Green
         new Color(0.95f, 0.85f, 0.10f), // Yellow
         new Color(0.60f, 0.22f, 0.82f), // Purple
+        new Color(0.88f, 0.74f, 0.52f), // Sand
     };
 
     static readonly Color BoardBgColor = new Color(0.18f, 0.20f, 0.24f, 0.95f);

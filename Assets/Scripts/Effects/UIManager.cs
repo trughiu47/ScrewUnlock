@@ -28,8 +28,8 @@ public class UIManager : MonoBehaviour
     public CanvasGroup losePanelGroup;
     public RectTransform losePanelRect;
     public Button restartButtonLose;
-    [Tooltip("Text 'LOSE' bên trong lose panel (tuỳ chọn — dùng để shake riêng)")]
     public RectTransform loseTitleRect;
+    public TextMeshProUGUI loseLevelText;
 
     [Header("── Main Menu ──")]
     public Button homeButton;
@@ -40,7 +40,6 @@ public class UIManager : MonoBehaviour
     public float loseButtonDelay = 0.08f;
     public float loseButtonInDuration = 0.36f;
     public float loseButtonPulseDuration = 0.7f;
-    [Tooltip("Camera bị shake khi thua — để trống nếu không dùng")]
     public Camera shakeCamera;
 
     [Header("── Confetti (tuỳ chọn) ──")]
@@ -56,6 +55,9 @@ public class UIManager : MonoBehaviour
     private bool _timerRunning = false;
     private bool _isWarning = false;
     private System.Action _onTimeUp;
+
+    [Header("── Time Freeze ──")]
+    public bool isTimeFrozen = false;
 
     private void Awake()
     {
@@ -84,7 +86,6 @@ public class UIManager : MonoBehaviour
         if (restartButtonLose != null)
         {
             restartButtonLose.onClick.AddListener(OnRestartClicked);
-            Debug.Log("[UIManager] Awake: restartButtonLose listener gắn OK");
         }
         else
         {
@@ -94,13 +95,12 @@ public class UIManager : MonoBehaviour
         if (homeButton != null)
         {
             homeButton.onClick.AddListener(ExitToMainMenu);
-            Debug.Log("[UIManager] Awake: homeButton listener gắn OK");
         }
     }
 
     void OnRestartClicked()
     {
-        Debug.Log("[UIManager] OnRestartClicked — NÚT ĐÃ ĐƯỢC BẤM!");
+        SfxManager.Instance?.PlayButtonClick();
 
         if (PlayerDataManager.Instance != null)
         {
@@ -134,16 +134,40 @@ public class UIManager : MonoBehaviour
 
     public void ExitToMainMenu()
     {
+        SfxManager.Instance?.PlayButtonClick();
+
         if (PlayerDataManager.Instance != null)
         {
             PlayerDataManager.Instance.SaveData();
         }
+        // Thoát từ trong game → không hiện loading screen
+        LoadingPanelController.SkipNextLoading = true;
         UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenuScene");
+    }
+
+    public void SetTimeFrozen(bool frozen)
+    {
+        isTimeFrozen = frozen;
+        if (frozen)
+        {
+            if (timerText != null)
+                timerText.transform.DOKill(false);
+        }
+        else
+        {
+            if (_isWarning && timerText != null)
+            {
+                timerText.color = warningColor;
+                timerText.transform.DOKill(false);
+                timerText.transform.DOPunchScale(Vector3.one * 0.15f, 0.3f, vibrato: 3)
+                         .SetLoops(-1, LoopType.Restart);
+            }
+        }
     }
 
     private void Update()
     {
-        if (!_timerRunning) return;
+        if (!_timerRunning || isTimeFrozen) return;
 
         _timeRemaining -= Time.deltaTime;
 
@@ -212,6 +236,18 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    public void ResumeTimer()
+    {
+        _timerRunning = true;
+        if (_isWarning && timerText != null && !isTimeFrozen)
+        {
+            timerText.color = warningColor;
+            timerText.transform.DOKill(false);
+            timerText.transform.DOPunchScale(Vector3.one * 0.15f, 0.3f, vibrato: 3)
+                     .SetLoops(-1, LoopType.Restart);
+        }
+    }
+
     public float GetRemainingSeconds() => _timeRemaining;
 
     public void ShowLevelComplete()
@@ -248,7 +284,20 @@ public class UIManager : MonoBehaviour
         });
     }
 
-    public void ShowLosePanel()
+    public void ShowLosePanel(int levelIndex = -1)
+    {
+        if (loseLevelText != null)
+        {
+            if (levelIndex >= 0)
+                loseLevelText.text = $"Level {levelIndex + 1}";
+            else
+                loseLevelText.text = string.Empty;
+        }
+
+        ShowLosePanelInternal();
+    }
+
+    private void ShowLosePanelInternal()
     {
         if (losePanelGroup == null)
         {
@@ -354,12 +403,9 @@ public class UIManager : MonoBehaviour
         seq.AppendInterval(loseButtonInDuration);
         seq.OnComplete(() =>
         {
-            Debug.Log("[UIManager] ShowLosePanel OnComplete — bật interactable");
             losePanelGroup.interactable = true;
             losePanelGroup.blocksRaycasts = true;
 
-            // Scan tất cả parent CanvasGroup — nếu có cái nào interactable=false
-            // thì button con bên trong sẽ KHÔNG bao giờ bấm được dù child đã set true.
             if (losePanelGroup != null)
             {
                 CanvasGroup[] parents = losePanelGroup.GetComponentsInParent<CanvasGroup>(true);
@@ -367,12 +413,10 @@ public class UIManager : MonoBehaviour
                 {
                     if (!cg.interactable)
                     {
-                        Debug.LogWarning($"[UIManager] Parent CanvasGroup '{cg.gameObject.name}' đang chặn tương tác! → Tự động sửa thành interactable=true");
                         cg.interactable = true;
                     }
                     if (!cg.blocksRaycasts)
                     {
-                        Debug.LogWarning($"[UIManager] Parent CanvasGroup '{cg.gameObject.name}' blocksRaycasts=false! → Tự động sửa");
                         cg.blocksRaycasts = true;
                     }
                 }

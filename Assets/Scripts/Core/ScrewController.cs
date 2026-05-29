@@ -16,7 +16,7 @@ public class ScrewController : MonoBehaviour
     [SerializeField] float fallDuration = 0.30f;  // thoi gian roi
 
     [Header("Trail")]
-    [SerializeField] float trailTime = 0.18f;  // TrailRenderer.time
+    [SerializeField] float trailTime = 0.18f;  
     [SerializeField] float trailStartWidth = 0.08f;
     [SerializeField] float trailEndWidth = 0.0f;
 
@@ -28,12 +28,6 @@ public class ScrewController : MonoBehaviour
     bool spinning = false;  // spin tu do khi unlock
     float dragAngleY = 0f;     // goc xoay tich luy khi block dang bi keo
 
-    // ── Drag-driven rotation (goi tu BlockController) ─────────────────────
-    /// <summary>
-    /// Goi moi frame khi block dang bi keo. dragDelta1D = do dich chuyen
-    /// doc theo slide axis (world units, co dau).
-    /// Screw xoay tai cho theo chieu kim dong ho khi keo ra (+).
-    /// </summary>
     public void OnDragUpdate(float dragDelta1D)
     {
         if (!IsLocked) return;
@@ -41,11 +35,9 @@ public class ScrewController : MonoBehaviour
         transform.localRotation = Quaternion.Euler(0f, dragAngleY, 0f);
     }
 
-    /// <summary>Goi khi nguoi choi tha tay — screw dung lai tai cho.</summary>
     public void OnDragRelease()
     {
         if (!IsLocked) return;
-        // Giu nguyen goc hien tai, khong lam gi them
     }
 
     void Update()
@@ -58,6 +50,9 @@ public class ScrewController : MonoBehaviour
     {
         if (!IsLocked) return;
         IsLocked = false;
+
+        // SFX: screw được tháo khỏi block
+        SfxManager.Instance?.PlayScrewUnlock();
 
         // Tach khoi board parent de bay tu do trong world space
         transform.SetParent(null);

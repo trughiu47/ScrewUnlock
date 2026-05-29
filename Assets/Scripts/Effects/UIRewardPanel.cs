@@ -57,7 +57,6 @@ public class UIRewardPanel : MonoBehaviour
 
     public void Show(int rewardCoins, string levelName, System.Action onClaim)
     {
-        // ✅ Reset hoàn toàn trước mỗi lần Show
         ResetPanel();
 
         _rewardCoins = rewardCoins;
@@ -82,7 +81,6 @@ public class UIRewardPanel : MonoBehaviour
     {
         _claimed = false;
 
-        // Kill tất cả tween đang chạy trên panel
         if (panelRect != null) panelRect.DOKill(false);
         if (panelGroup != null) panelGroup.DOKill(false);
         if (coinIconRect != null) coinIconRect.DOKill(false);
@@ -100,7 +98,6 @@ public class UIRewardPanel : MonoBehaviour
         if (panelRect != null)
             panelRect.localScale = Vector3.one * 0.7f;
 
-        // ✅ Reset nút claim
         if (claimButton != null)
             claimButton.interactable = true;
         if (claimButtonRect != null)
@@ -166,8 +163,6 @@ public class UIRewardPanel : MonoBehaviour
             panelGroup.blocksRaycasts = true;
             Debug.Log("[UIRewardPanel] panelGroup.interactable = true — claim button có thể bấm");
 
-            // Scan tất cả parent CanvasGroup — nếu có cái nào interactable=false
-            // thì claim button bên trong sẽ KHÔNG bao giờ bấm được.
             CanvasGroup[] parents = panelGroup.GetComponentsInParent<CanvasGroup>(true);
             foreach (var cg in parents)
             {
@@ -184,7 +179,6 @@ public class UIRewardPanel : MonoBehaviour
             }
         }
 
-        // Đảm bảo nút claim luôn có thể bấm được
         if (claimButton != null)
             claimButton.interactable = true;
 

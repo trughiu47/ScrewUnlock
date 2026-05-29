@@ -1,59 +1,45 @@
 using UnityEngine;
 using DG.Tweening;
 
-/// <summary>
-/// Dieu khien hanh vi cua 1 block:
-///   - Khi con screw: chi truot theo truc slideDir, snap theo luoi, khong bi lech ngang.
-///     Keo > 0.5 * cellSize sang o ke → snap sang o do luon.
-///   - Sau khi screw bung (isFree): di chuyen tu do 2D (XZ), van cham tuong va block khac.
-///   - Juice: pick-up squeeze, unlock flash + punch scale.
-/// </summary>
 public class BlockController : MonoBehaviour
 {
-    // ── Public state ───────────────────────────────────────────────────────
     public BoardController parentBoard { get; private set; }
     public bool isFree { get; private set; } = false;
 
-    /// <summary>Huong keo de mo khoa screw (chi co hieu luc khi !isFree)</summary>
     public MoveDirection slideDir { get; private set; }
 
-    // ── Private ────────────────────────────────────────────────────────────
+    public BlockColor blockColor { get; private set; }
+    public bool isSandBlock => blockColor == BlockColor.Sand;
+
     ScrewController screw;
 
-    /// <summary>Vi tri world cua block khi bat dau (= vi tri screw)</summary>
     Vector3 originWorldPos;
 
-    /// <summary>Khoang cach can keo theo slideDir de screw bat ra</summary>
     float unlockDistance;
 
-    /// <summary>Kich thuoc 1 o luoi (de snap)</summary>
     float cellSize;
-
-    // Snap state — vi tri toa do doc theo slideAxis hien tai (co the la nhieu o)
     float slideAccum;      // tich luy dich chuyen doc theo slide axis (world units)
     int   currentCell;     // o hien tai tren truc slideDir (bat dau = 0)
     Vector3 lockedPerp;    // vi tri tren truc VUONG GOC (giu co dinh khi !isFree)
 
-    // Grid state cho free drag (sau khi isFree) — snap theo luoi XZ
     Vector3 freeGridOrigin;  // goc luoi = vi tri snap khi vua duoc giai phong
     float freeAccumX;
     float freeAccumZ;
     int freeCellX;
     int freeCellZ;
-    // Vi tri world da duoc xac nhan (sau khi pass collision) de smooth follow
     Vector3 freeConfirmedPos;
 
-    // Renderer de flash khi mo screw
     Renderer[] renderers;
+    Bounds localBounds;
 
-    // ── Init ───────────────────────────────────────────────────────────────
     public void Init(BoardController board, MoveDirection dir,
-                     float unlockDist, ScrewController sc, float cs = 1f)
+                     float unlockDist, ScrewController sc, BlockColor color, float cs = 1f)
     {
         parentBoard   = board;
         slideDir      = dir;
         unlockDistance = unlockDist;
         screw         = sc;
+        blockColor    = color;
         cellSize      = cs;
 
         originWorldPos = transform.position;
@@ -63,17 +49,18 @@ public class BlockController : MonoBehaviour
         currentCell = 0;
 
         renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
+        CacheLocalBounds();
     }
 
-    // ── Juice: pick-up ─────────────────────────────────────────────────────
     public void OnPickUp()
     {
         transform.DOKill(complete: false);
-        // Bop nhe khi nhat len, roi phong lai – cam giac "chop"
         transform.DOPunchScale(new Vector3(-0.06f, 0.18f, -0.06f), 0.25f, 5, 0.4f);
+
+        // SFX: block được chạm vào
+        SfxManager.Instance?.PlayBlockPickup();
     }
 
-    // ── Drag (goi tu InputManager moi frame khi dang keo) ─────────────────
     public void DragTo(Vector3 worldDelta)
     {
         if (!isFree)
@@ -82,7 +69,6 @@ public class BlockController : MonoBehaviour
             DragFree(worldDelta);
     }
 
-    // ── Locked drag (con screw) ────────────────────────────────────────────
     void DragLocked(Vector3 worldDelta)
     {
         Vector3 axis = SlideAxisVec();
@@ -115,7 +101,6 @@ public class BlockController : MonoBehaviour
         CheckUnlock();
     }
 
-    // Helper tao vi tri snap (lock truc vuong goc)
     Vector3 SnapPos(Vector3 axis, float slideOffset)
     {
         Vector3 pos = originWorldPos + axis * slideOffset;
@@ -125,7 +110,6 @@ public class BlockController : MonoBehaviour
         return pos;
     }
 
-    // ── Free drag (sau khi mo screw) — mượt, slide assistance ────────────
     void DragFree(Vector3 worldDelta)
     {
         // Xoa tat ca tween de phan hoi truc tiep
@@ -193,9 +177,11 @@ public class BlockController : MonoBehaviour
                     freeGridOrigin.y,
                     freeGridOrigin.z + cz * cellSize);
 
-    // ── Release ────────────────────────────────────────────────────────────
     public void OnRelease()
     {
+        // SFX: thả tay ra — block snap về
+        SfxManager.Instance?.PlayBlockRelease();
+
         if (!isFree)
         {
             // Bao screw dung xoay
@@ -220,7 +206,6 @@ public class BlockController : MonoBehaviour
         }
     }
 
-    // ── Unlock: goi khi screw vua bung ────────────────────────────────────
     void PlayUnlockJuice()
     {
         transform.DOKill(complete: false);
@@ -272,7 +257,6 @@ public class BlockController : MonoBehaviour
         );
     }
 
-    // ── Unlock check ───────────────────────────────────────────────────────
     void CheckUnlock()
     {
         if (screw == null || !screw.IsLocked) return;
@@ -283,30 +267,184 @@ public class BlockController : MonoBehaviour
         if (signedDist >= unlockDistance)
         {
             screw.Unlock();
-            isFree = true;
 
-            // Snap block ve tam o hien tai truoc khi chuyen sang free grid
-            Vector3 axis    = SlideAxisVec();
-            Vector3 snapPos = SnapPos(axis, currentCell * cellSize);
-            transform.DOKill(complete: true);
-            transform.position = snapPos;
+            if (isSandBlock)
+            {
+                TriggerSandCrumbleAndDestroy();
+            }
+            else
+            {
+                isFree = true;
 
-            // Khoi tao goc luoi cho free drag
-            freeGridOrigin   = snapPos;
-            freeConfirmedPos = snapPos;
-            freeAccumX = 0f;
-            freeAccumZ = 0f;
-            freeCellX  = 0;
-            freeCellZ  = 0;
+                // Snap block ve tam o hien tai truoc khi chuyen sang free grid
+                Vector3 axis    = SlideAxisVec();
+                Vector3 snapPos = SnapPos(axis, currentCell * cellSize);
+                transform.DOKill(complete: true);
+                transform.position = snapPos;
 
-            Debug.Log($"[Block] {gameObject.name} is FREE! (keo {signedDist:F2}u)");
-            PlayUnlockJuice();
-            parentBoard.OnBlockFreed(this);
+                // Khoi tao goc luoi cho free drag
+                freeGridOrigin   = snapPos;
+                freeConfirmedPos = snapPos;
+                freeAccumX = 0f;
+                freeAccumZ = 0f;
+                freeCellX  = 0;
+                freeCellZ  = 0;
+
+                Debug.Log($"[Block] {gameObject.name} is FREE! (keo {signedDist:F2}u)");
+                SwapToSmoothVisual();
+                PlayUnlockJuice();
+                parentBoard.OnBlockFreed(this);
+            }
         }
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
-    /// <summary>Vector don vi the hien huong slideDir trong world space</summary>
+    void SwapToSmoothVisual()
+    {
+        if (LevelSpawner.Instance == null) return;
+
+        bool is2x = unlockDistance >= 2f;
+        GameObject smoothPrefab = is2x 
+            ? LevelSpawner.Instance.smoothBlockPrefab2x 
+            : LevelSpawner.Instance.smoothBlockPrefab;
+
+        if (smoothPrefab == null) return;
+
+        // Xóa tất cả các con hiện tại (khối có rãnh cũ)
+        int childCount = transform.childCount;
+        for (int i = childCount - 1; i >= 0; i--)
+        {
+            Transform child = transform.GetChild(i);
+            child.gameObject.SetActive(false); // Vô hiệu hóa để không bị quét tìm collider khi đang chờ xóa
+            Destroy(child.gameObject);
+        }
+
+        // Vô hiệu hóa MeshRenderer & MeshFilter trên chính root nếu có
+        if (TryGetComponent<MeshRenderer>(out var rootMR))
+        {
+            rootMR.enabled = false;
+        }
+        if (TryGetComponent<MeshFilter>(out var rootMF))
+        {
+            Destroy(rootMF);
+        }
+
+        // Tạo khối nhẵn mới làm con
+        GameObject smoothVisual = Instantiate(smoothPrefab, transform);
+        smoothVisual.transform.localPosition = Vector3.zero;
+        smoothVisual.transform.localRotation = Quaternion.identity;
+        smoothVisual.transform.localScale = Vector3.one;
+
+        // Cập nhật lại màu sắc cho khối mới
+        LevelSpawner.Instance.ApplyColor(smoothVisual, blockColor);
+
+        // Cập nhật lại mảng renderers để các hiệu ứng DOTween (như PlayUnlockJuice) chạy chính xác trên khối mới
+        renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
+        CacheLocalBounds();
+    }
+
+    void TriggerSandCrumbleAndDestroy()
+    {
+        // Disable colliders to prevent any further interaction or movement blocking
+        var colliders = GetComponentsInChildren<Collider>(includeInactive: true);
+        foreach (var col in colliders)
+        {
+            col.enabled = false;
+        }
+
+        // Remove from board's active tracking so it doesn't block other blocks
+        parentBoard.RemoveBlock(this);
+
+        // Kill any ongoing tweens
+        transform.DOKill(complete: false);
+
+        // Dynamic 2D Sand Pieces effect
+        if (LevelSpawner.Instance != null && LevelSpawner.Instance.sandPieceSprites != null && LevelSpawner.Instance.sandPieceSprites.Length > 0)
+        {
+            Bounds blockBounds = GetBounds();
+            Vector3 center = blockBounds.center;
+            Vector3 extents = blockBounds.extents;
+            int pieceCount = Random.Range(12, 18);
+
+            for (int i = 0; i < pieceCount; i++)
+            {
+                Sprite sprite = LevelSpawner.Instance.sandPieceSprites[Random.Range(0, LevelSpawner.Instance.sandPieceSprites.Length)];
+                if (sprite == null) continue;
+
+                GameObject fragment = new GameObject($"SandPiece_{i}");
+                fragment.transform.position = center + new Vector3(
+                    Random.Range(-extents.x * 0.8f, extents.x * 0.8f),
+                    Random.Range(-extents.y * 0.5f, extents.y * 0.5f),
+                    Random.Range(-extents.z * 0.8f, extents.z * 0.8f)
+                );
+
+                // Setup SpriteRenderer
+                SpriteRenderer sr = fragment.AddComponent<SpriteRenderer>();
+                sr.sprite = sprite;
+                sr.sortingOrder = 15; // Render on top of blocks
+
+                // Scale randomly
+                fragment.transform.localScale = Vector3.one * Random.Range(0.2f, 0.45f);
+
+                // Billboard to face main camera
+                if (Camera.main != null)
+                {
+                    fragment.transform.rotation = Camera.main.transform.rotation;
+                }
+                else
+                {
+                    fragment.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                }
+
+                // Scatter physical movement using DOTween
+                float duration = Random.Range(0.7f, 1.1f);
+                Vector3 scatterDir = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f)).normalized;
+                float scatterDist = Random.Range(0.4f, 1.2f);
+                Vector3 targetHorizPos = fragment.transform.position + scatterDir * scatterDist;
+
+                // 1. Horizontal spread
+                fragment.transform.DOMoveX(targetHorizPos.x, duration).SetEase(Ease.OutQuad);
+                fragment.transform.DOMoveZ(targetHorizPos.z, duration).SetEase(Ease.OutQuad);
+
+                // 2. Parabolic arc height jump and gravity fall
+                float peakHeight = center.y + Random.Range(0.3f, 0.6f);
+                float jumpDuration = duration * 0.35f;
+                float fallDuration = duration - jumpDuration;
+
+                Sequence ySeq = DOTween.Sequence();
+                ySeq.Append(fragment.transform.DOMoveY(peakHeight, jumpDuration).SetEase(Ease.OutQuad));
+                ySeq.Append(fragment.transform.DOMoveY(center.y - 1.8f, fallDuration).SetEase(Ease.InQuad));
+
+                // 3. Random tumble/rotation
+                fragment.transform.DORotate(new Vector3(0f, 0f, Random.Range(-360f, 360f)), duration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad);
+
+                // 4. Fade & Shrink out
+                sr.DOFade(0f, duration).SetEase(Ease.InQuad);
+                fragment.transform.DOScale(Vector3.zero, duration).SetEase(Ease.InQuad).OnComplete(() =>
+                {
+                    Destroy(fragment);
+                });
+            }
+        }
+        else if (LevelSpawner.Instance != null && LevelSpawner.Instance.sandBreakEffectPrefab != null)
+        {
+            // Fallback to prefab
+            GameObject effect = Instantiate(LevelSpawner.Instance.sandBreakEffectPrefab, transform.position, Quaternion.identity);
+            Destroy(effect, 2.5f);
+        }
+
+        // Play crumble/shake & dissolve DOTween sequence on the block base itself
+        Sequence seq = DOTween.Sequence();
+        seq.Append(transform.DOShakePosition(0.25f, 0.05f, 15, 90, false, false));
+        seq.Join(transform.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack));
+        seq.OnComplete(() =>
+        {
+            Destroy(gameObject);
+        });
+
+        // Notify board that block is freed to check victory condition
+        parentBoard.OnBlockFreed(this);
+    }
+
     Vector3 SlideAxisVec()
     {
         return slideDir switch
@@ -319,7 +457,6 @@ public class BlockController : MonoBehaviour
         };
     }
 
-    /// <summary>Vector vuong goc voi slideDir (trong mat phang XZ)</summary>
     Vector3 PerpAxisVec()
     {
         return slideDir switch
@@ -334,8 +471,79 @@ public class BlockController : MonoBehaviour
 
     public Bounds GetBounds()
     {
-        Collider col = GetComponent<Collider>();
-        if (col != null) return col.bounds;
-        return new Bounds(transform.position, new Vector3(0.9f, 0.4f, 0.9f));
+        // Lấy tâm và bán kính (extents) local
+        Vector3 center = localBounds.center;
+        Vector3 extents = localBounds.extents;
+
+        // Chuyển đổi tâm local sang thế giới (bao gồm dịch chuyển, xoay và tỷ lệ!)
+        Vector3 worldCenter = transform.TransformPoint(center);
+
+        // Chuyển đổi các trục hướng local (nhân với bán kính tương ứng) sang thế giới
+        Vector3 worldExtentsX = transform.TransformVector(new Vector3(extents.x, 0f, 0f));
+        Vector3 worldExtentsY = transform.TransformVector(new Vector3(0f, extents.y, 0f));
+        Vector3 worldExtentsZ = transform.TransformVector(new Vector3(0f, 0f, extents.z));
+
+        // Kích thước thế giới mới (AABB) là tổng trị tuyệt đối của các thành phần hình chiếu
+        float extX = Mathf.Abs(worldExtentsX.x) + Mathf.Abs(worldExtentsY.x) + Mathf.Abs(worldExtentsZ.x);
+        float extY = Mathf.Abs(worldExtentsX.y) + Mathf.Abs(worldExtentsY.y) + Mathf.Abs(worldExtentsZ.y);
+        float extZ = Mathf.Abs(worldExtentsX.z) + Mathf.Abs(worldExtentsY.z) + Mathf.Abs(worldExtentsZ.z);
+
+        return new Bounds(worldCenter, new Vector3(extX * 2f, extY * 2f, extZ * 2f));
+    }
+
+    void CacheLocalBounds()
+    {
+        // includeInactive = false để loại bỏ hoàn toàn các collider cũ đã bị tắt SetActive(false) trong SwapToSmoothVisual
+        Collider[] colliders = GetComponentsInChildren<Collider>(includeInactive: false);
+        if (colliders == null || colliders.Length == 0)
+        {
+            localBounds = new Bounds(Vector3.zero, new Vector3(0.9f, 0.4f, 0.9f));
+            return;
+        }
+
+        Bounds bounds = new Bounds();
+        bool hasBounds = false;
+
+        foreach (var col in colliders)
+        {
+            if (col == null) continue;
+
+            Bounds colLocalBounds;
+
+            if (col is BoxCollider box)
+            {
+                // BoxCollider có center và size rõ ràng trong không gian local của chính GameObject của nó
+                Vector3 localCenter = box.center;
+                Vector3 localSize = box.size;
+
+                // Chuyển sang không gian local của block
+                Vector3 blockLocalCenter = transform.InverseTransformPoint(col.transform.TransformPoint(localCenter));
+                Vector3 blockLocalSize = transform.InverseTransformVector(col.transform.TransformVector(localSize));
+
+                // Kích thước luôn dương
+                blockLocalSize = new Vector3(Mathf.Abs(blockLocalSize.x), Mathf.Abs(blockLocalSize.y), Mathf.Abs(blockLocalSize.z));
+                colLocalBounds = new Bounds(blockLocalCenter, blockLocalSize);
+            }
+            else
+            {
+                // Fallback cho các loại collider khác: sử dụng world bounds được chuyển về local
+                Vector3 localCenter = transform.InverseTransformPoint(col.bounds.center);
+                Vector3 localSize = transform.InverseTransformVector(col.bounds.size);
+                localSize = new Vector3(Mathf.Abs(localSize.x), Mathf.Abs(localSize.y), Mathf.Abs(localSize.z));
+                colLocalBounds = new Bounds(localCenter, localSize);
+            }
+
+            if (!hasBounds)
+            {
+                bounds = colLocalBounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(colLocalBounds);
+            }
+        }
+
+        localBounds = hasBounds ? bounds : new Bounds(Vector3.zero, new Vector3(0.9f, 0.4f, 0.9f));
     }
 }

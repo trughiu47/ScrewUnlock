@@ -16,7 +16,6 @@ public class LevelManager : MonoBehaviour
     [Header("── Victory ──")]
     [SerializeField] VictorySequenceController victorySequence;
 
-    [Tooltip("Coin thưởng cố định mỗi level (hoặc đọc từ LevelData nếu bạn thêm field sau)")]
     [SerializeField] int rewardCoinsPerLevel = 20;
 
     int currentIndex = 0;
@@ -65,6 +64,37 @@ public class LevelManager : MonoBehaviour
         {
             uiManager.SetLevelText(currentIndex);
             uiManager.StartCountdown(uiManager.countdownDuration, OnTimeUp);
+        }
+
+        if (TimeFreezeController.Instance != null)
+        {
+            TimeFreezeController.Instance.RefreshLockState();
+        }
+
+        // Level 3 (index == 2): hiện reward panel lần đầu tiên
+        if (index == 2 && TimeFreezeRewardPanel.ShouldShow())
+        {
+            if (TimeFreezeRewardPanel.Instance != null)
+            {
+                TimeFreezeRewardPanel.Instance.Show();
+            }
+            else
+            {
+                Debug.LogWarning("[LevelManager] TimeFreezeRewardPanel.Instance là null — hãy thêm TimeFreezeRewardPanel vào scene!");
+            }
+        }
+
+        // Level 4 (index == 3): hiện giới thiệu sand block lần đầu tiên
+        if (index == 3 && SandBlockIntroPanel.ShouldShow())
+        {
+            if (SandBlockIntroPanel.Instance != null)
+            {
+                SandBlockIntroPanel.Instance.Show();
+            }
+            else
+            {
+                Debug.LogWarning("[LevelManager] SandBlockIntroPanel.Instance là null — hãy thêm SandBlockIntroPanel vào scene!");
+            }
         }
 
         Debug.Log($"[LevelManager] Loaded Level {index + 1}");
@@ -138,7 +168,7 @@ public class LevelManager : MonoBehaviour
         }
 
         if (uiManager != null)
-            uiManager.ShowLosePanel();
+            uiManager.ShowLosePanel(currentIndex);
     }
 
     public int GetCurrentLevelIndex() => currentIndex;

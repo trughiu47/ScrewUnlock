@@ -5,13 +5,9 @@ using DG.Tweening;
 public class FireworkController : MonoBehaviour
 {
     [Header("── Spawn Settings ──")]
-    [Tooltip("Số burst mỗi salvo")]
     public int burstsPerSalvo = 3;
-    [Tooltip("Thời gian (giây) giữa các salvo")]
     public float salvoInterval = 0.65f;
-    [Tooltip("Tổng số salvo (0 = vô hạn đến khi StopFireworks)")]
     public int totalSalvos = 0;
-    [Tooltip("Số particle mỗi burst")]
     public int particlesPerBurst = 80;
 
     [Header("── Spread ──")]
@@ -40,7 +36,6 @@ public class FireworkController : MonoBehaviour
     };
 
     [Header("── Light Flash ──")]
-    [Tooltip("Spawn flash ánh sáng mỗi burst")]
     public bool spawnFlash = true;
     public float flashDuration = 0.25f;
 
@@ -198,7 +193,11 @@ public class FireworkController : MonoBehaviour
         rend.material = BuildMaterial();
         rend.sortingOrder = 40;
 
-        _ps.Play(); 
+        var main2 = _ps.main;
+        main2.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+        rend.bounds = new Bounds(Vector3.zero, Vector3.one * 9999f);
+
+        _ps.Play();
     }
 
     private static Material BuildMaterial()

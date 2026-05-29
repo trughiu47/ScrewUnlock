@@ -32,6 +32,8 @@ MonoBehaviour:
       slideDirection: 2
       screw:
         unlockDistance: 1
+    disabledCells: []
+    blockerCells: []
   - worldPosition: {x: 2, y: -0}
     cellRows: 3
     cellCols: 1
@@ -49,6 +51,8 @@ MonoBehaviour:
       slideDirection: 2
       screw:
         unlockDistance: 1
+    disabledCells: []
+    blockerCells: []
   - worldPosition: {x: 0, y: -2}
     cellRows: 2
     cellCols: 1
@@ -60,6 +64,8 @@ MonoBehaviour:
       slideDirection: 2
       screw:
         unlockDistance: 1
+    disabledCells: []
+    blockerCells: []
   - worldPosition: {x: 0, y: 2}
     cellRows: 2
     cellCols: 1
@@ -71,3 +77,5 @@ MonoBehaviour:
       slideDirection: 3
       screw:
         unlockDistance: 1
+    disabledCells: []
+    blockerCells: []

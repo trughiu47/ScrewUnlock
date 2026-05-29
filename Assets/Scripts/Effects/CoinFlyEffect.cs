@@ -8,24 +8,18 @@ using DG.Tweening;
 public class CoinFlyEffect : MonoBehaviour
 {
     [Header("── Prefab & Pool ──")]
-    [Tooltip("UI Image prefab coin (~40x40 px)")]
     public Image coinIconPrefab;
-    [Tooltip("Canvas Screen Space Overlay chứa coin bay")]
     public Canvas targetCanvas;
     public int poolSize = 20;
 
     [Header("── HUD Target ──")]
-    [Tooltip("RectTransform của HUD coin icon")]
     public RectTransform hudCoinRect;
-    [Tooltip("TextMeshPro hiện số coin trong HUD")]
     public TextMeshProUGUI hudCoinText;
 
     [Header("── Motion ──")]
     public float flyDuration = 0.7f;
     public float staggerDelay = 0.08f;
-    [Tooltip("Độ cao đỉnh cung Bezier (pixel)")]
     public float arcHeight = 280f;
-    [Tooltip("Spread ngẫu nhiên từ điểm xuất phát (pixel)")]
     public float spreadRadius = 60f;
 
     [Header("── Trail Glow ──")]
@@ -98,9 +92,9 @@ public class CoinFlyEffect : MonoBehaviour
             BezierFly(coin, from, ctrl, to, flyDuration, () =>
             {
                 coin.rectTransform.DOKill(false);
-                landed++;
-                IncrementHud(count, landed);
                 OnCoinLanded(coin);
+                landed++;
+                IncrementHud(count, landed);            
                 if (landed >= count) onComplete?.Invoke();
             });
         }
@@ -129,7 +123,13 @@ public class CoinFlyEffect : MonoBehaviour
         DOVirtual.DelayedCall(duration * 0.75f, () =>
         {
             if (coin != null && coin.gameObject.activeSelf)
+            {
                 coin.DOFade(0f, duration * 0.25f).SetEase(Ease.InQuad);
+
+                // SFX: phát đúng lúc coin bắt đầu biến mất — khớp với thị giác
+                if (audioSource != null && coinLandClip != null)
+                    audioSource.PlayOneShot(coinLandClip, Random.Range(0.55f, 0.9f));
+            }
         });
 
         if (useTrailGlow && trailImagePrefab != null)
@@ -139,9 +139,6 @@ public class CoinFlyEffect : MonoBehaviour
     private void OnCoinLanded(Image coin)
     {
         ReturnToPool(coin);
-
-        if (audioSource != null && coinLandClip != null)
-            audioSource.PlayOneShot(coinLandClip, Random.Range(0.55f, 0.9f));
 
         if (hudCoinRect != null)
         {

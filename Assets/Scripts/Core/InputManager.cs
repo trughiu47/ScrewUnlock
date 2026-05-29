@@ -1,11 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-/// <summary>
-/// Xu ly input chuot (Editor/PC) va touch (mobile).
-/// Su dung Old Input System (Project Settings > Player > Active Input Handling = Input Manager).
-/// Truyen toan bo delta 2D (XZ) sang BlockController, de Block tu loc theo truc cua no.
-/// </summary>
 public class InputManager : MonoBehaviour
 {
     [Header("References")]
@@ -13,27 +8,18 @@ public class InputManager : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] float dragSensitivity = 1.0f;
-    [Tooltip("Nguong pixel de bat dau tinh la drag (tranh click nham)")]
     [SerializeField] float startDragPixels = 8f;
 
-    // ── State ──────────────────────────────────────────────────────────────
     BlockController dragging;
     Vector3         lastWorldPos;
     Vector2         pressScreenPos;
     bool            isDragging;
 
-    // Track finger ID de tranh nham ngon tay khi multi-touch
     int             activeFingerId = -1;
 
-    // ── Unity ──────────────────────────────────────────────────────────────
     void Awake()
     {
         if (mainCam == null) mainCam = Camera.main;
-
-        // Old Input System + StandaloneInputModule:
-        // simulateMouseWithTouches = true (mặc định Unity) → EventSystem nhận được touch
-        // và kích hoạt Button.onClick bình thường trên mobile.
-        // KHÔNG đặt = false ở đây, vì sẽ làm mất khả năng bấm UI Button.
     }
 
     void Update()
@@ -45,8 +31,6 @@ public class InputManager : MonoBehaviour
 #endif
     }
 
-    // ── Kiem tra co dang cham vao UI khong ─────────────────────────────────
-    // Neu dung => InputManager se bo qua, de EventSystem xu ly UI Button.
     static bool IsPointerOverUI(int fingerId = -1)
     {
         if (EventSystem.current == null) return false;
@@ -60,7 +44,6 @@ public class InputManager : MonoBehaviour
 #endif
     }
 
-    // ── Mouse (Editor / PC only) ───────────────────────────────────────────
     void HandleMouse()
     {
         if (Input.GetMouseButtonDown(0))
@@ -89,18 +72,15 @@ public class InputManager : MonoBehaviour
         }
     }
 
-    // ── Touch (Mobile) ─────────────────────────────────────────────────────
     void HandleTouch()
     {
         int count = Input.touchCount;
         if (count == 0) return;
 
-        // --- Xu ly ngon tay dang active ---
         if (activeFingerId >= 0)
         {
             Touch? activeTouch = FindTouch(activeFingerId);
 
-            // Ngon tay nhat len hoac bi mat (Ended / Canceled / khong con trong danh sach)
             if (activeTouch == null ||
                 activeTouch.Value.phase == TouchPhase.Ended ||
                 activeTouch.Value.phase == TouchPhase.Canceled)
@@ -125,23 +105,17 @@ public class InputManager : MonoBehaviour
 
             if (isDragging && t.phase == TouchPhase.Moved)
             {
-                // Dung deltaPosition cua touch thay vi tinh lai tu world
-                // deltaPosition duoc Unity accumulate tu tat ca sub-frame samples
-                // => mượt hon nhieu tren man hinh 90/120Hz
                 MoveDelta(t.deltaPosition);
             }
 
             return;
         }
 
-        // --- Bat dau ngon tay moi (chua co active finger) ---
         for (int i = 0; i < count; i++)
         {
             Touch t = Input.GetTouch(i);
             if (t.phase == TouchPhase.Began)
             {
-                // Neu cham vao UI (Button, Panel...) thi bo qua,
-                // de EventSystem xu ly click binh thuong.
                 if (IsPointerOverUI(t.fingerId))
                     break;
 
@@ -153,7 +127,6 @@ public class InputManager : MonoBehaviour
         }
     }
 
-    // ── Core logic ─────────────────────────────────────────────────────────
     void TryPickBlock(Vector2 screenPos)
     {
         dragging   = null;
@@ -166,7 +139,6 @@ public class InputManager : MonoBehaviour
         lastWorldPos = ScreenToWorldPlane(screenPos);
     }
 
-    /// <summary>Di chuyen block dua tren vi tri man hinh moi (dung cho Mouse).</summary>
     void MoveBlock(Vector2 screenPos)
     {
         if (dragging == null) return;
@@ -178,7 +150,6 @@ public class InputManager : MonoBehaviour
         dragging.DragTo(delta);
     }
 
-    /// <summary>Di chuyen block dua tren delta pixel (dung cho Touch - muot hon).</summary>
     void MoveDelta(Vector2 screenDelta)
     {
         if (dragging == null) return;
@@ -200,7 +171,6 @@ public class InputManager : MonoBehaviour
         isDragging = false;
     }
 
-    // ── Helper: tim touch theo fingerId ───────────────────────────────────
     Touch? FindTouch(int fingerId)
     {
         for (int i = 0; i < Input.touchCount; i++)
@@ -211,7 +181,6 @@ public class InputManager : MonoBehaviour
         return null;
     }
 
-    // ── Helper: screen -> world tren mat phang Y = 0 ──────────────────────
     Vector3 ScreenToWorldPlane(Vector2 screenPos)
     {
         Ray   ray   = mainCam.ScreenPointToRay(screenPos);

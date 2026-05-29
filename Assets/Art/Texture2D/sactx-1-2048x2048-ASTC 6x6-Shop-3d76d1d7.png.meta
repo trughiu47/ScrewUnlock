@@ -108,12 +108,34 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites: []
+    sprites:
+    - serializedVersion: 2
+      name: sactx-1-2048x2048-ASTC 6x6-Shop-3d76d1d7_0
+      rect:
+        serializedVersion: 2
+        x: 17
+        y: 910
+        width: 289
+        height: 271
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8c0b11d88bdf47e4f9f007c1cba89ddc
+      internalID: -1471220545
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: df6b1748cff14384ca9e701394a44297
     internalID: 0
     vertices: []
     indices: 
@@ -122,7 +144,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      sactx-1-2048x2048-ASTC 6x6-Shop-3d76d1d7_0: -1471220545
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -162,7 +162,7 @@ TextureImporter:
         width: 748
         height: 224
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -184,7 +184,7 @@ TextureImporter:
         width: 266
         height: 87
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -193,6 +193,28 @@ TextureImporter:
       bones: []
       spriteID: 30068c2fcc69d70429486b5ea212c55a
       internalID: -2109140493
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sand
+      rect:
+        serializedVersion: 2
+        x: 1229
+        y: 0
+        width: 432
+        height: 458
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 89a800e350369fc48a24c70cd585840a
+      internalID: -1292136672
       vertices: []
       indices: 
       edges: []
@@ -215,6 +237,7 @@ TextureImporter:
       sactx-1-2048x2048-ASTC 6x6-Win_Lose-6805eea5_1: -810064228
       sactx-1-2048x2048-ASTC 6x6-Win_Lose-6805eea5_2: 443008938
       sactx-1-2048x2048-ASTC 6x6-Win_Lose-6805eea5_3: -2109140493
+      sand: -1292136672
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

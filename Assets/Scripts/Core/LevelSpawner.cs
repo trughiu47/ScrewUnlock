@@ -2,13 +2,22 @@ using UnityEngine;
 
 public class LevelSpawner : MonoBehaviour
 {
+    public static LevelSpawner Instance { get; private set; }
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
     [Header("Block & Screw")]
     public GameObject blockPrefab;
 
-    [Tooltip("Prefab block dai 2 o (dung cho block co unlockDistance >= 2).\n" +
-             "Pivot dat tai TAM O SCREW, mesh keo dai ve NGUOC HUONG slide.\n" +
-             "Script se tu xoay 90 deg Y khi slideDir la Forward/Back.")]
     public GameObject blockPrefab2x;
+
+    [Header("Smooth Blocks (Prefab cu nhẵn, dùng sau khi mở khóa)")]
+    public GameObject smoothBlockPrefab;
+
+    public GameObject smoothBlockPrefab2x;
 
     public GameObject screwPrefab;
 
@@ -30,12 +39,15 @@ public class LevelSpawner : MonoBehaviour
     public float borderY = 0f;
     public float borderPadding = 0.05f;
     public Vector2 cornerPivotOffset = Vector2.zero;
-    [Tooltip("Rotation Y da bake san trong prefab corner (Inspector > Rotation Y). Thuong la 0 hoac 90.")]
     public float cornerPrefabBaseRotY = 90f;
+    public float edgeCornerShrink = 0.08f;
 
     [Header("Materials theo mau (index = BlockColor enum)")]
-    [Tooltip("Thu tu: Cyan, Orange, Red, Blue, Green, Yellow, Purple")]
-    public Material[] colorMaterials = new Material[7];
+    public Material[] colorMaterials = new Material[8];
+
+    [Header("Sand Block Effects")]
+    public GameObject sandBreakEffectPrefab;
+    public Sprite[] sandPieceSprites;
 
     GameObject levelRoot;
 
@@ -126,9 +138,6 @@ public class LevelSpawner : MonoBehaviour
         float cs = bd.cellSize;
         float p = borderPadding;
 
-        // Huong: 0=Top(+Z), 1=Bottom(-Z), 2=Left(-X), 3=Right(+X)
-        // Voi moi o ACTIVE, kiem tra 4 canh — neu canh do tiep giap ô disabled/ngoai board
-        // thi spawn 1 edge piece tai do
         for (int r = 0; r < bd.cellRows; r++)
         {
             for (int c = 0; c < bd.cellCols; c++)
@@ -138,86 +147,165 @@ public class LevelSpawner : MonoBehaviour
 
                 Vector3 cellCenter = bd.CellWorldPos(r, c);
 
-                // ── Top edge (r-1 la disabled/ngoai) ─────────────────────
                 if (IsEdge(bd, r - 1, c))
                 {
                     Vector3 pos = new Vector3(cellCenter.x, borderY, cellCenter.z + cs * 0.5f + p);
-                    SpawnBorderPiece(edgePrefab, parent, pos, 0f, $"Edge_T_{r}_{c}", false);
+                    SpawnEdgePiece(bd, parent, pos, 0f, $"Edge_T_{r}_{c}", HasCorner(bd, r, c), HasCorner(bd, r, c + 1), Vector3.right);
                 }
-                // ── Bottom edge (r+1 la disabled/ngoai) ──────────────────
                 if (IsEdge(bd, r + 1, c))
                 {
                     Vector3 pos = new Vector3(cellCenter.x, borderY, cellCenter.z - cs * 0.5f - p);
-                    SpawnBorderPiece(edgePrefab, parent, pos, 180f, $"Edge_B_{r}_{c}", false);
+                    SpawnEdgePiece(bd, parent, pos, 180f, $"Edge_B_{r}_{c}", HasCorner(bd, r + 1, c), HasCorner(bd, r + 1, c + 1), Vector3.right);
                 }
-                // ── Left edge (c-1 la disabled/ngoai) ────────────────────
                 if (IsEdge(bd, r, c - 1))
                 {
                     Vector3 pos = new Vector3(cellCenter.x - cs * 0.5f - p, borderY, cellCenter.z);
-                    SpawnBorderPiece(edgePrefab, parent, pos, 270f, $"Edge_L_{r}_{c}", false);
+                    SpawnEdgePiece(bd, parent, pos, 270f, $"Edge_L_{r}_{c}", HasCorner(bd, r, c), HasCorner(bd, r + 1, c), Vector3.back);
                 }
-                // ── Right edge (c+1 la disabled/ngoai) ───────────────────
                 if (IsEdge(bd, r, c + 1))
                 {
                     Vector3 pos = new Vector3(cellCenter.x + cs * 0.5f + p, borderY, cellCenter.z);
-                    SpawnBorderPiece(edgePrefab, parent, pos, 90f, $"Edge_R_{r}_{c}", false);
+                    SpawnEdgePiece(bd, parent, pos, 90f, $"Edge_R_{r}_{c}", HasCorner(bd, r, c + 1), HasCorner(bd, r + 1, c + 1), Vector3.back);
                 }
             }
         }
 
-        // ── Corners: spawn tai cac goc giua 2 edge gap nhau ──────────────
         if (cornerPrefab == null) return;
 
-        for (int r = 0; r < bd.cellRows; r++)
+        for (int r = 0; r <= bd.cellRows; r++)
         {
-            for (int c = 0; c < bd.cellCols; c++)
+            for (int c = 0; c <= bd.cellCols; c++)
             {
-                if (bd.IsCellDisabled(r, c)) continue;
+                bool tl = IsEdge(bd, r - 1, c - 1);
+                bool tr = IsEdge(bd, r - 1, c);
+                bool bl = IsEdge(bd, r, c - 1);
+                bool br = IsEdge(bd, r, c);
 
-                Vector3 cc = bd.CellWorldPos(r, c);
-                float hcs = cs * 0.5f;
+                float halfW = bd.TotalWidth * 0.5f;
+                float halfH = bd.TotalHeight * 0.5f;
+                float cx = bd.worldPosition.x - halfW + c * cs;
+                float cz = bd.worldPosition.y + halfH - r * cs;
 
-                // 4 goc cua o nay: TopLeft, TopRight, BottomRight, BottomLeft
-                // Rotation tuyet doi (the gioi):
-                //   TopLeft  (quay vao goc ↘) =   0°
-                //   TopRight (quay vao goc ↙) =  90°
-                //   BottomRight (quay vao goc ↖) = 180°
-                //   BottomLeft  (quay vao goc ↗) = 270°
-                // Tru di rotation da bake san trong prefab (cornerPrefabBaseRotY)
-                // de bu tru, tranh xoay doi.
-
-                // Goc TopLeft (+Z, -X) — spawn neu ca top va left deu la edge
-                if (IsEdge(bd, r - 1, c) && IsEdge(bd, r, c - 1))
+                // 1. TL Corner Piece (rotation 0) - Associated with cell BR
+                // - Outer corner of BR (!br && tr && bl) -> sits at TL quadrant (cx - p, cz + p)
+                // - Inner corner of BR (br && !tl && !tr && !bl) -> sits at BR quadrant (cx + p, cz - p)
+                if (!br && tr && bl)
+                {
                     SpawnCorner(parent,
-                        new Vector3(cc.x - hcs - p, borderY, cc.z + hcs + p),
-                        0f   - cornerPrefabBaseRotY, Vector2.zero, $"Corner_TL_{r}_{c}");
-
-                // Goc TopRight (+Z, +X) — top va right deu la edge
-                if (IsEdge(bd, r - 1, c) && IsEdge(bd, r, c + 1))
+                        new Vector3(cx - p, borderY, cz + p),
+                        0f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_TL_{r}_{c}");
+                }
+                else if (br && !tl && !tr && !bl)
+                {
                     SpawnCorner(parent,
-                        new Vector3(cc.x + hcs + p, borderY, cc.z + hcs + p),
-                        90f  - cornerPrefabBaseRotY, Vector2.zero, $"Corner_TR_{r}_{c}");
+                        new Vector3(cx + p, borderY, cz - p),
+                        0f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_TL_Inner_{r}_{c}");
+                }
 
-                // Goc BottomRight (-Z, +X) — bottom va right deu la edge
-                if (IsEdge(bd, r + 1, c) && IsEdge(bd, r, c + 1))
+                // 2. TR Corner Piece (rotation 90) - Associated with cell BL
+                // - Outer corner of BL (!bl && tl && br) -> sits at TR quadrant (cx + p, cz + p)
+                // - Inner corner of BL (bl && !tl && !tr && !br) -> sits at BL quadrant (cx - p, cz - p)
+                if (!bl && tl && br)
+                {
                     SpawnCorner(parent,
-                        new Vector3(cc.x + hcs + p, borderY, cc.z - hcs - p),
+                        new Vector3(cx + p, borderY, cz + p),
+                        90f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_TR_{r}_{c}");
+                }
+                else if (bl && !tl && !tr && !br)
+                {
+                    SpawnCorner(parent,
+                        new Vector3(cx - p, borderY, cz - p),
+                        90f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_TR_Inner_{r}_{c}");
+                }
+
+                // 3. BR Corner Piece (rotation 180) - Associated with cell TL
+                // - Outer corner of TL (!tl && bl && tr) -> sits at BR quadrant (cx + p, cz - p)
+                // - Inner corner of TL (tl && !tr && !bl && !br) -> sits at TL quadrant (cx - p, cz + p)
+                if (!tl && bl && tr)
+                {
+                    SpawnCorner(parent,
+                        new Vector3(cx + p, borderY, cz - p),
                         180f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_BR_{r}_{c}");
-
-                // Goc BottomLeft (-Z, -X) — bottom va left deu la edge
-                if (IsEdge(bd, r + 1, c) && IsEdge(bd, r, c - 1))
+                }
+                else if (tl && !tr && !bl && !br)
+                {
                     SpawnCorner(parent,
-                        new Vector3(cc.x - hcs - p, borderY, cc.z - hcs - p),
+                        new Vector3(cx - p, borderY, cz + p),
+                        180f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_BR_Inner_{r}_{c}");
+                }
+
+                // 4. BL Corner Piece (rotation 270) - Associated with cell TR
+                // - Outer corner of TR (!tr && tl && br) -> sits at BL quadrant (cx - p, cz - p)
+                // - Inner corner of TR (tr && !tl && !bl && !br) -> sits at TR quadrant (cx + p, cz + p)
+                if (!tr && tl && br)
+                {
+                    SpawnCorner(parent,
+                        new Vector3(cx - p, borderY, cz - p),
                         270f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_BL_{r}_{c}");
+                }
+                else if (tr && !tl && !bl && !br)
+                {
+                    SpawnCorner(parent,
+                        new Vector3(cx + p, borderY, cz + p),
+                        270f - cornerPrefabBaseRotY, Vector2.zero, $"Corner_BL_Inner_{r}_{c}");
+                }
             }
         }
     }
 
-    /// <summary>
-    /// Tra ve true neu o (row, col) la "ngoai bien" — tuc la:
-    /// nam ngoai board, hoac la o disabled (khong active).
-    /// Edge piece can duoc spawn tiep giap voi nhung o nhu vay.
-    /// </summary>
+    void SpawnEdgePiece(BoardData bd, Transform parent, Vector3 basePos, float yRotDeg, string objName,
+                        bool hasStartCorner, bool hasEndCorner, Vector3 shiftDir)
+    {
+        GameObject go = Instantiate(edgePrefab, basePos, Quaternion.Euler(0f, yRotDeg, 0f), parent);
+        go.name = objName;
+
+        AlignBoundsCenter(go, basePos, alignY: false);
+
+        int cornerCount = (hasStartCorner ? 1 : 0) + (hasEndCorner ? 1 : 0);
+        if (cornerCount > 0 && edgeCornerShrink > 0f)
+        {
+            float scaleX = 1f - (cornerCount * edgeCornerShrink);
+            Vector3 localScale = go.transform.localScale;
+            localScale.x *= scaleX;
+            go.transform.localScale = localScale;
+
+            if (cornerCount == 1)
+            {
+                float shiftDist = edgeCornerShrink * 0.5f * bd.cellSize;
+                Vector3 worldShift = shiftDir * (hasStartCorner ? shiftDist : -shiftDist);
+                go.transform.position += worldShift;
+            }
+        }
+    }
+
+    bool HasCorner(BoardData bd, int r, int c)
+    {
+        if (cornerPrefab == null) return false;
+
+        bool tl = IsEdge(bd, r - 1, c - 1);
+        bool tr = IsEdge(bd, r - 1, c);
+        bool bl = IsEdge(bd, r, c - 1);
+        bool br = IsEdge(bd, r, c);
+
+        // 1. TL Corner
+        if (!br && tr && bl) return true;
+        if (br && !tl && !tr && !bl) return true;
+
+        // 2. TR Corner
+        if (!bl && tl && br) return true;
+        if (bl && !tl && !tr && !br) return true;
+
+        // 3. BR Corner
+        if (!tl && bl && tr) return true;
+        if (tl && !tr && !bl && !br) return true;
+
+        // 4. BL Corner
+        if (!tr && tl && br) return true;
+        if (tr && !tl && !bl && !br) return true;
+
+        return false;
+    }
+
     bool IsEdge(BoardData bd, int row, int col)
     {
         // Ngoai board
@@ -277,19 +365,12 @@ public class LevelSpawner : MonoBehaviour
 
         ScrewController sc = SpawnScrew(worldPos, boardRoot);
 
-        // ── Chon prefab dung theo unlockDistance ──────────────────────────────
         bool use2x = bData.screw.unlockDistance >= 2f && blockPrefab2x != null;
         GameObject prefabToUse = use2x ? blockPrefab2x : blockPrefab;
 
-        // ── Xoay prefab theo slideDir (chi ap dung cho 1x2) ─────────────────
-        // Quy uoc prefab 1x2: pivot tai dau screw, mesh keo dai ve phia -Z cuc bo.
-        // GetBlockRotation xoay de -Z luon tro ve NGUOC HUONG slide:
-        //   Forward (+Z)  →   0°  (-Z → -Z)  ✓
-        //   Back    (-Z)  → 180°  (-Z → +Z)  ✓
-        //   Right   (+X)  → 270°  (-Z → -X)  ✓
-        //   Left    (-X)  →  90°  (-Z → +X)  ✓
-        // Block 1x1 giu nguyen Quaternion.identity (hinh vuong, khong can xoay).
-        Quaternion blockRot = use2x ? GetBlockRotation(bData.slideDirection) : Quaternion.identity;
+        Quaternion baseRot = prefabToUse != null ? prefabToUse.transform.rotation : Quaternion.identity;
+        Quaternion rotOffset = use2x ? GetBlockRotation(bData.slideDirection) : Get1x1BlockRotation(bData.slideDirection);
+        Quaternion blockRot = rotOffset * baseRot;
 
         GameObject blockGO;
         if (prefabToUse != null)
@@ -299,9 +380,7 @@ public class LevelSpawner : MonoBehaviour
 
             if (use2x)
             {
-                // 1x2: pivot DA o dung vi tri (tam o screw) → KHONG can AlignBoundsCenter.
-                // Neu goi AlignBoundsCenter, no se dich block de tam visual trung worldPos,
-                // lam screw xuat hien o giua block thay vi o dau.
+
             }
             else
             {
@@ -320,27 +399,14 @@ public class LevelSpawner : MonoBehaviour
         blockGO.name = $"Block_{bData.color}_R{bData.cellRow}C{bData.cellCol}";
         ApplyColor(blockGO, bData.color);
 
-        if (blockGO.GetComponent<Collider>() == null)
+        if (blockGO.GetComponentInChildren<Collider>() == null)
             blockGO.AddComponent<BoxCollider>();
 
         BlockController block = blockGO.AddComponent<BlockController>();
-        block.Init(bc, bData.slideDirection, bData.screw.unlockDistance, sc, bd.cellSize);
+        block.Init(bc, bData.slideDirection, bData.screw.unlockDistance, sc, bData.color, bd.cellSize);
         bc.RegisterBlock(block);
     }
 
-    /// <summary>
-    /// Tinh rotation Y cho prefab block 1x2.
-    ///
-    /// Gia dinh prefab: pivot tai TAM O SCREW, mesh keo dai ve phia +Z cuc bo.
-    /// Unity xoay Y theo chieu kim dong ho khi nhin tu tren xuong:
-    ///   +Z --(90°Y)--> +X --(90°Y)--> -Z --(90°Y)--> -X
-    ///
-    /// Xoay de vector +Z cuc bo tro ve NGUOC CHIEU slide trong world:
-    ///   Forward (+Z)  → 180°  :  local +Z  →  world -Z   ✓
-    ///   Back    (-Z)  →   0°  :  local +Z  →  world +Z   ✓
-    ///   Right   (+X)  → 270°  :  local +Z  →  world -X   ✓
-    ///   Left    (-X)  →  90°  :  local +Z  →  world +X   ✓
-    /// </summary>
     static Quaternion GetBlockRotation(MoveDirection dir)
     {
         return dir switch
@@ -349,6 +415,19 @@ public class LevelSpawner : MonoBehaviour
             MoveDirection.Back    => Quaternion.Euler(0f,   0f, 0f),
             MoveDirection.Right   => Quaternion.Euler(0f, 270f, 0f),
             MoveDirection.Left    => Quaternion.Euler(0f,  90f, 0f),
+            _                     => Quaternion.identity
+        };
+    }
+
+    static Quaternion Get1x1BlockRotation(MoveDirection dir)
+    {
+        // Giả sử rãnh trên model 3D (Blender) mặc định hướng về phía BACK (-Z)
+        return dir switch
+        {
+            MoveDirection.Forward => Quaternion.Euler(0f, 0f, 0f),      // Trượt Forward -> Rãnh hướng Back (0 độ)
+            MoveDirection.Back    => Quaternion.Euler(0f, 180f, 0f),    // Trượt Back -> Rãnh hướng Forward (180 độ)
+            MoveDirection.Right   => Quaternion.Euler(0f, 90f, 0f),     // Trượt Right -> Rãnh hướng Left (90 độ)
+            MoveDirection.Left    => Quaternion.Euler(0f, 270f, 0f),    // Trượt Left -> Rãnh hướng Right (270 độ)
             _                     => Quaternion.identity
         };
     }
@@ -395,42 +474,37 @@ public class LevelSpawner : MonoBehaviour
         go.transform.position += new Vector3(dx, dy, dz);
     }
 
-    void ApplyColor(GameObject go, BlockColor color)
+    public void ApplyColor(GameObject go, BlockColor color)
     {
-        if (go.TryGetComponent<MeshRenderer>(out var mr))
+        MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>(includeInactive: true);
+        foreach (var r in renderers)
         {
-            ApplyMaterialToRenderer(mr, color);
-            return;
-        }
-
-        MeshRenderer[] children = go.GetComponentsInChildren<MeshRenderer>();
-        foreach (var r in children)
             ApplyMaterialToRenderer(r, color);
+        }
     }
 
     void ApplyMaterialToRenderer(MeshRenderer mr, BlockColor color)
     {
         int idx = (int)color;
 
-        // Luon dung MaterialPropertyBlock (per-instance) thay vi sharedMaterial.
-        // Neu dung sharedMaterial, tat ca object dung chung asset do se bi doi mau cung luc
-        // → bug "mau sai cho den khi mo screw".
         var mpb = new MaterialPropertyBlock();
         mr.GetPropertyBlock(mpb);
 
+        Color col;
         if (colorMaterials != null && idx < colorMaterials.Length && colorMaterials[idx] != null)
         {
-            // Assign material dung, nhung dat mau qua MPB de isolate per-instance
             mr.sharedMaterial = colorMaterials[idx];
-            Color col = colorMaterials[idx].HasProperty("_BaseColor")
+            col = colorMaterials[idx].HasProperty("_BaseColor")
                 ? colorMaterials[idx].GetColor("_BaseColor")
-                : colorMaterials[idx].color;
-            mpb.SetColor("_BaseColor", col);
+                : (colorMaterials[idx].HasProperty("_Color") ? colorMaterials[idx].GetColor("_Color") : Color.white);
         }
         else
         {
-            mpb.SetColor("_BaseColor", ColorMap.Get(color));
+            col = ColorMap.Get(color);
         }
+
+        mpb.SetColor("_BaseColor", col);
+        mpb.SetColor("_Color", col);
 
         mr.SetPropertyBlock(mpb);
     }

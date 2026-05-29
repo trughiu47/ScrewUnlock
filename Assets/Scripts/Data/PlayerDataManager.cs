@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using UnityEngine;
 
@@ -30,6 +31,8 @@ public class PlayerDataManager : MonoBehaviour
         public int hearts = 5;
         public int currentLevelIndex = 0;
         public string lastHeartUpdateTime = "";
+        public bool timeFreezeUnlocked = false; // true = đã claim reward panel Level 3
+        public bool sandBlockIntroduced = false; // true = đã xem giới thiệu Sand Block Level 4
     }
 
     private PlayerData _data;
@@ -110,7 +113,7 @@ public class PlayerDataManager : MonoBehaviour
             return;
         }
 
-        if (DateTime.TryParse(_data.lastHeartUpdateTime, out DateTime lastTime))
+        if (DateTime.TryParse(_data.lastHeartUpdateTime, null, DateTimeStyles.RoundtripKind, out DateTime lastTime))
         {
             TimeSpan elapsed = DateTime.UtcNow - lastTime;
             double elapsedSeconds = elapsed.TotalSeconds;
@@ -144,7 +147,7 @@ public class PlayerDataManager : MonoBehaviour
     {
         if (_data == null || _data.hearts >= 5) return 0f;
 
-        if (DateTime.TryParse(_data.lastHeartUpdateTime, out DateTime lastTime))
+        if (DateTime.TryParse(_data.lastHeartUpdateTime, null, DateTimeStyles.RoundtripKind, out DateTime lastTime))
         {
             TimeSpan elapsed = DateTime.UtcNow - lastTime;
             double elapsedSeconds = elapsed.TotalSeconds;
@@ -188,5 +191,85 @@ public class PlayerDataManager : MonoBehaviour
         _data.currentLevelIndex = index;
         SaveData();
         Debug.Log($"[PlayerDataManager] Active level set to: {index + 1}");
+    }
+
+    public void SetTimeFreezeUnlocked()
+    {
+        if (_data == null) return;
+        _data.timeFreezeUnlocked = true;
+        SaveData();
+        Debug.Log("[PlayerDataManager] Time Freeze unlocked — saved to JSON.");
+    }
+
+    public bool IsTimeFreezeUnlocked() => _data != null && _data.timeFreezeUnlocked;
+
+    public void SetSandBlockIntroduced()
+    {
+        if (_data == null) return;
+        _data.sandBlockIntroduced = true;
+        SaveData();
+        Debug.Log("[PlayerDataManager] Sand Block introduced — saved to JSON.");
+    }
+
+    public bool IsSandBlockIntroduced() => _data != null && _data.sandBlockIntroduced;
+
+    [ContextMenu("DEBUG: Reset All Data")]
+    public void DebugResetAllData()
+    {
+        PlayerPrefs.DeleteAll();
+        PlayerPrefs.Save();
+        CreateNewData(); // tạo lại JSON mới với level=0, timeFreezeUnlocked=false
+        Debug.Log("[PlayerDataManager] ★ DEBUG RESET — All data cleared!");
+    }
+
+    public bool AddHeartFromAd()
+    {
+        if (_data == null) return false;
+
+        UpdateHeartsRecovery();
+
+        if (_data.hearts >= 5)
+        {
+            Debug.Log("[PlayerDataManager] AddHeartFromAd: tim đã đầy, bỏ qua.");
+            return false;
+        }
+
+        if (_data.hearts == 0 || string.IsNullOrEmpty(_data.lastHeartUpdateTime))
+            _data.lastHeartUpdateTime = DateTime.UtcNow.ToString("O");
+
+        _data.hearts = Mathf.Min(5, _data.hearts + 1);
+
+        if (_data.hearts >= 5)
+            _data.lastHeartUpdateTime = DateTime.UtcNow.ToString("O");
+
+        SaveData();
+        Debug.Log($"[PlayerDataManager] AddHeartFromAd: +1 tim. Hiện tại: {_data.hearts}");
+        return true;
+    }
+
+    public bool BuyHeartsWithCoins()
+    {
+        if (_data == null) return false;
+
+        UpdateHeartsRecovery();
+
+        if (_data.hearts >= 5)
+        {
+            Debug.Log("[PlayerDataManager] BuyHeartsWithCoins: tim đã đầy.");
+            return false;
+        }
+
+        if (_data.coins < 150)
+        {
+            Debug.Log($"[PlayerDataManager] BuyHeartsWithCoins: không đủ xu ({_data.coins}/150).");
+            return false;
+        }
+
+        _data.coins -= 150;
+        _data.hearts = 5;
+        _data.lastHeartUpdateTime = DateTime.UtcNow.ToString("O");
+        SaveData();
+        Debug.Log($"[PlayerDataManager] BuyHeartsWithCoins: -150 xu, tim về MAX. Xu còn: {_data.coins}");
+        return true;
     }
 }

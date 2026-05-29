@@ -4,7 +4,7 @@ public enum MoveDirection { Right, Left, Forward, Back }
 
 public enum BlockColor
 {
-    Cyan, Orange, Red, Blue, Green, Yellow, Purple
+    Cyan, Orange, Red, Blue, Green, Yellow, Purple, Sand
 }
 
 [System.Serializable]
